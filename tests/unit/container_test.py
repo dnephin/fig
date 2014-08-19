@@ -1,8 +1,8 @@
 from __future__ import unicode_literals
 from .. import unittest
 
-import mock
 import docker
+from .. import mock
 
 from compose.container import Container
 

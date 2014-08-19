@@ -3,10 +3,12 @@ from __future__ import absolute_import
 import os
 from os import path
 import mock
+import six
 
 from compose import Service
 from compose.service import CannotBeScaledError
 from compose.container import Container
+
 from docker.errors import APIError
 from .testcases import DockerClientTestCase
 
@@ -317,7 +319,7 @@ class ServiceTest(DockerClientTestCase):
         )
         container = create_and_start_container(service)
         container.wait()
-        self.assertIn('success', container.logs())
+        self.assertIn(b'success', container.logs())
         self.assertEqual(len(self.client.images(name='composetest_test')), 1)
 
     def test_start_container_uses_tagged_image_if_it_exists(self):
@@ -330,7 +332,7 @@ class ServiceTest(DockerClientTestCase):
         )
         container = create_and_start_container(service)
         container.wait()
-        self.assertIn('success', container.logs())
+        self.assertIn(b'success', container.logs())
 
     def test_start_container_creates_ports(self):
         service = self.create_service('web', ports=[8000])

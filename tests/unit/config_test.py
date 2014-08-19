@@ -1,5 +1,7 @@
+from __future__ import print_function
+from operator import itemgetter
 import os
-import mock
+from .. import mock
 from .. import unittest
 
 from compose import config
@@ -13,7 +15,7 @@ class ConfigTest(unittest.TestCase):
         })
 
         self.assertEqual(
-            sorted(service_dicts, key=lambda d: d['name']),
+            sorted(service_dicts, key=itemgetter('name')),
             sorted([
                 {
                     'name': 'bar',
@@ -23,7 +25,7 @@ class ConfigTest(unittest.TestCase):
                     'name': 'foo',
                     'image': 'busybox',
                 }
-            ])
+            ], key=itemgetter('name'))
         )
 
     def test_from_dictionary_throws_error_when_not_dict(self):
@@ -369,24 +371,24 @@ class ExtendsTest(unittest.TestCase):
             other_config = {'web': {'links': ['db']}}
 
             with mock.patch.object(config, 'load_yaml', return_value=other_config):
-                print load_config()
+                print(load_config())
 
         with self.assertRaisesRegexp(config.ConfigurationError, 'volumes_from'):
             other_config = {'web': {'volumes_from': ['db']}}
 
             with mock.patch.object(config, 'load_yaml', return_value=other_config):
-                print load_config()
+                print(load_config())
 
         with self.assertRaisesRegexp(config.ConfigurationError, 'net'):
             other_config = {'web': {'net': 'container:db'}}
 
             with mock.patch.object(config, 'load_yaml', return_value=other_config):
-                print load_config()
+                print(load_config())
 
         other_config = {'web': {'net': 'host'}}
 
         with mock.patch.object(config, 'load_yaml', return_value=other_config):
-            print load_config()
+            print(load_config())
 
     def test_volume_path(self):
         dicts = config.load('tests/fixtures/volume-path/docker-compose.yml')

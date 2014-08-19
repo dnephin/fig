@@ -2,7 +2,7 @@ from __future__ import unicode_literals
 from __future__ import absolute_import
 
 from .. import unittest
-import mock
+from .. import mock
 
 import docker
 from requests import Response

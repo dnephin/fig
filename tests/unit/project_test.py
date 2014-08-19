@@ -1,12 +1,14 @@
 from __future__ import unicode_literals
+
+import docker
+
+from .. import mock
 from .. import unittest
 from compose.service import Service
 from compose.project import Project
 from compose.container import Container
 from compose import config
 
-import mock
-import docker
 
 
 class ProjectTest(unittest.TestCase):

@@ -2,8 +2,9 @@ from __future__ import unicode_literals
 from __future__ import absolute_import
 from collections import namedtuple
 import logging
-import re
+import os
 from operator import attrgetter
+import re
 import sys
 import six
 
@@ -481,7 +482,7 @@ class Service(object):
         try:
             all_events = stream_output(build_output, sys.stdout)
         except StreamOutputError as e:
-            raise BuildError(self, unicode(e))
+            raise BuildError(self, six.text_type(e))
 
         image_id = None
 

@@ -30,8 +30,8 @@ WORKDIR /code/
 ADD requirements.txt /code/
 RUN pip install -r requirements.txt
 
-ADD requirements-dev.txt /code/
-RUN pip install -r requirements-dev.txt
+ADD requirements-dev-py2.txt /code/
+RUN pip install -r requirements-dev-py2.txt
 
 ADD . /code/
 RUN python setup.py install

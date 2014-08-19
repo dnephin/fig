@@ -1,12 +1,13 @@
 from __future__ import unicode_literals
 from __future__ import absolute_import
+from functools import reduce
 import logging
 
-from functools import reduce
 from .config import get_service_name_from_net, ConfigurationError
 from .service import Service
 from .container import Container
 from docker.errors import APIError
+
 
 log = logging.getLogger(__name__)
 

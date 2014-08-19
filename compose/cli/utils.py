@@ -3,8 +3,10 @@ from __future__ import absolute_import
 from __future__ import division
 import datetime
 import os
-import subprocess
 import platform
+import subprocess
+
+from six.moves import input
 
 
 def yesno(prompt, default=None):
@@ -17,7 +19,7 @@ def yesno(prompt, default=None):
     Unrecognised input (anything other than "y", "n", "yes",
     "no" or "") will return None.
     """
-    answer = raw_input(prompt).strip().lower()
+    answer = input(prompt).strip().lower()
 
     if answer == "y" or answer == "yes":
         return True

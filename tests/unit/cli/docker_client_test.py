@@ -2,7 +2,7 @@ from __future__ import unicode_literals
 from __future__ import absolute_import
 import os
 
-import mock
+from tests import mock
 from tests import unittest
 
 from compose.cli import docker_client
