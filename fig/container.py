@@ -112,7 +112,7 @@ class Container(object):
         def get_value(dictionary, key):
             return (dictionary or {}).get(key)
 
-        return reduce(get_value, key.split('.'), self.dictionary)
+        return six.moves.reduce(get_value, key.split('.'), self.dictionary)
 
     def get_local_port(self, port, protocol='tcp'):
         port = self.ports.get("%s/%s" % (port, protocol))
@@ -124,8 +124,8 @@ class Container(object):
     def stop(self, **options):
         return self.client.stop(self.id, **options)
 
-    def kill(self):
-        return self.client.kill(self.id)
+    def kill(self, **options):
+        return self.client.kill(self.id, **options)
 
     def restart(self):
         return self.client.restart(self.id)

@@ -2,10 +2,9 @@ from __future__ import unicode_literals
 from __future__ import absolute_import
 from tests import unittest
 
-import mock
 from six import StringIO
 
-from fig import progress_stream 
+from fig import progress_stream
 
 
 class ProgressStreamTestCase(unittest.TestCase):

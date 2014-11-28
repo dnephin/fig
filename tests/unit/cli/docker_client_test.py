@@ -2,10 +2,10 @@ from __future__ import unicode_literals
 from __future__ import absolute_import
 import os
 
-import mock
+from . import mock
 from tests import unittest
 
-from fig.cli import docker_client 
+from fig.cli import docker_client
 
 
 class DockerClientTestCase(unittest.TestCase):
