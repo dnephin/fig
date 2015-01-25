@@ -4,7 +4,7 @@ import os
 
 import six
 
-from fig.cli.log_printer import LogPrinter
+from compose.cli.log_printer import LogPrinter
 from .. import unittest
 
 

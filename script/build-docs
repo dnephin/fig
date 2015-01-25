@@ -1,5 +1,0 @@
-#!/bin/bash
-set -ex
-pushd docs
-fig run jekyll jekyll build
-popd
