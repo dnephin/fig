@@ -2,14 +2,12 @@ from __future__ import unicode_literals
 from __future__ import absolute_import
 from tests import unittest
 
-from .. import mock
 from six import StringIO
 
 from compose import progress_stream 
 
 
 class ProgressStreamTestCase(unittest.TestCase):
-
     def test_stream_output(self):
         output = [
             '{"status": "Downloading", "progressDetail": {"current": '
