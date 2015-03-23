@@ -7,7 +7,7 @@ set -e
 >&2 echo "Validating DCO"
 script/validate-dco
 
->&2 echo "Running lint checks"
+>&2 echo "Running flake8"
 flake8 compose
 
 if [ "$DOCKER_VERSIONS" == "" ]; then
@@ -22,8 +22,9 @@ for version in $DOCKER_VERSIONS; do
     --rm \
     --privileged \
     --volume="/var/lib/docker" \
+    --volumes-from="${TOX_MOUNT}" \
     -e "DOCKER_VERSION=$version" \
     --entrypoint="script/dind" \
     "$TAG" \
-    script/wrapdocker nosetests "$@"
+    script/wrapdocker tox "$@"
 done
