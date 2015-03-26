@@ -1,8 +1,8 @@
 from __future__ import unicode_literals
 from __future__ import absolute_import
 
-import six
-from functools import reduce
+from six import iteritems
+from six.moves import reduce
 
 
 class Container(object):
@@ -77,7 +77,7 @@ class Container(object):
                 private=private, **public[0])
 
         return ', '.join(format_port(*item)
-                         for item in sorted(six.iteritems(self.ports)))
+                         for item in sorted(iteritems(self.ports)))
 
     @property
     def human_readable_state(self):

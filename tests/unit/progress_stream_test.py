@@ -8,7 +8,6 @@ from compose import progress_stream
 
 
 class ProgressStreamTestCase(unittest.TestCase):
-
     def test_stream_output(self):
         output = [
             '{"status": "Downloading", "progressDetail": {"current": '
