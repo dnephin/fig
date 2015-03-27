@@ -25,5 +25,5 @@ for version in $DOCKER_VERSIONS; do
     -e "DOCKER_VERSION=$version" \
     --entrypoint="script/dind" \
     "$TAG" \
-    script/wrapdocker nosetests "$@"
+    script/wrapdocker tox "$@"
 done

@@ -24,7 +24,7 @@ that should get you started.
 
 ## Running the test suite
 
-Use the test script to run linting checks and then the full test suite:
+Use the test script to run DCO check, linting checks and then the full test suite against different Python interpreters:
 
     $ script/test
 

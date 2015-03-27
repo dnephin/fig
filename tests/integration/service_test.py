@@ -1,9 +1,8 @@
 from __future__ import unicode_literals
 from __future__ import absolute_import
+from .. import mock
 import os
 from os import path
-import mock
-import six
 
 from compose import Service
 from compose.service import CannotBeScaledError
@@ -199,13 +198,13 @@ class ServiceTest(DockerClientTestCase):
         )
 
         old_container = create_and_start_container(service)
-        self.assertEqual(old_container.get('Volumes').keys(), ['/data'])
+        self.assertEqual(list(old_container.get('Volumes').keys()), ['/data'])
         volume_path = old_container.get('Volumes')['/data']
 
         service.recreate_containers()
         new_container = service.containers()[0]
         service.start_container(new_container)
-        self.assertEqual(new_container.get('Volumes').keys(), ['/data'])
+        self.assertEqual(list(new_container.get('Volumes').keys()), ['/data'])
         self.assertEqual(new_container.get('Volumes')['/data'], volume_path)
 
     def test_start_container_passes_through_options(self):
