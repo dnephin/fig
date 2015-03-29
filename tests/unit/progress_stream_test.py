@@ -4,7 +4,7 @@ from tests import unittest
 
 from six import StringIO
 
-from compose import progress_stream 
+from compose import progress_stream
 
 
 class ProgressStreamTestCase(unittest.TestCase):

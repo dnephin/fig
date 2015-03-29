@@ -17,7 +17,6 @@ DOCKER_CONFIG_KEYS = [
     'environment',
     'hostname',
     'image',
-    'labels',
     'links',
     'mem_limit',
     'net',
@@ -40,14 +39,14 @@ ALLOWED_KEYS = DOCKER_CONFIG_KEYS + [
 ]
 
 DOCKER_CONFIG_HINTS = {
-    'cpu_share' : 'cpu_shares',
-    'link'      : 'links',
-    'port'      : 'ports',
-    'privilege' : 'privileged',
+    'cpu_share': 'cpu_shares',
+    'link': 'links',
+    'port': 'ports',
+    'privilege': 'privileged',
     'priviliged': 'privileged',
-    'privilige' : 'privileged',
-    'volume'    : 'volumes',
-    'workdir'   : 'working_dir',
+    'privilige': 'privileged',
+    'volume': 'volumes',
+    'workdir': 'working_dir',
 }
 
 
@@ -171,9 +170,6 @@ def process_container_options(service_dict, working_dir=None):
 
     if 'volumes' in service_dict:
         service_dict['volumes'] = resolve_host_paths(service_dict['volumes'], working_dir=working_dir)
-
-    if 'labels' in service_dict:
-        service_dict['labels'] = parse_labels(service_dict['labels'])
 
     return service_dict
 
@@ -322,41 +318,30 @@ def merge_volumes(base, override):
 
 
 def dict_from_volumes(volumes):
-    return dict(split_volume(v) for v in volumes)
-
-
-def split_volume(volume):
-    if ':' in volume:
-        return reversed(volume.split(':', 1))
+    if volumes:
+        return dict(split_volume(v) for v in volumes)
     else:
-        return (volume, None)
+        return {}
 
 
 def volumes_from_dict(d):
-    return ["%s:%s" % (host_path, container_path) for (container_path, host_path) in d.items()]
+    return [join_volume(v) for v in d.items()]
 
 
-def parse_labels(labels):
-    if not labels:
-        return {}
-
-    if isinstance(labels, list):
-        return dict(split_label(e) for e in labels)
-
-    if isinstance(labels, dict):
-        return labels
-
-    raise ConfigurationError(
-        "labels \"%s\" must be a list or mapping" %
-        labels
-    )
-
-
-def split_label(label):
-    if '=' in label:
-        return label.split('=', 1)
+def split_volume(string):
+    if ':' in string:
+        (host, container) = string.split(':', 1)
+        return (container, host)
     else:
-        return label, ''
+        return (string, None)
+
+
+def join_volume(pair):
+    (container, host) = pair
+    if host is None:
+        return container
+    else:
+        return ":".join((host, container))
 
 
 def expand_path(working_dir, path):

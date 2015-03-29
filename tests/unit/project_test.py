@@ -213,7 +213,7 @@ class ProjectTest(unittest.TestCase):
             }
         ], mock_client)
         service = project.get_service('test')
-        self.assertEqual(service._get_net(), 'container:'+container_id)
+        self.assertEqual(service._get_net(), 'container:' + container_id)
 
     def test_use_net_from_service(self):
         container_name = 'test_aaa_1'
@@ -239,4 +239,4 @@ class ProjectTest(unittest.TestCase):
         ], mock_client)
 
         service = project.get_service('test')
-        self.assertEqual(service._get_net(), 'container:'+container_name)
+        self.assertEqual(service._get_net(), 'container:' + container_name)

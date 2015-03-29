@@ -1,5 +1,5 @@
 page_title: Installing Compose
-page_description: How to intall Docker Compose
+page_description: How to install Docker Compose
 page_keywords: compose, orchestration, install, installation, docker, documentation
 
 
@@ -10,7 +10,7 @@ Compose with a `curl` command.
 
 ### Install Docker
 
-First, install Docker version 1.6 or greater:
+First, install Docker version 1.3 or greater:
 
 - [Instructions for Mac OS X](http://docs.docker.com/installation/mac/)
 - [Instructions for Ubuntu](http://docs.docker.com/installation/ubuntulinux/)
@@ -31,7 +31,7 @@ Compose can also be installed as a Python package:
 
     $ sudo pip install -U docker-compose
 
-No further steps are required; Compose should now be successfully  installed.
+No further steps are required; Compose should now be successfully installed.
 You can test the installation by running `docker-compose --version`.
 
 ## Compose documentation

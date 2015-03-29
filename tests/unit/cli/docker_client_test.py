@@ -5,7 +5,7 @@ import os
 from tests import mock
 from tests import unittest
 
-from compose.cli import docker_client 
+from compose.cli import docker_client
 
 
 class DockerClientTestCase(unittest.TestCase):

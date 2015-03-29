@@ -6,6 +6,7 @@ from .. import unittest
 
 from compose import config
 
+
 class ConfigTest(unittest.TestCase):
     def test_from_dictionary(self):
         service_dicts = config.from_dictionary({
@@ -41,9 +42,50 @@ class ConfigTest(unittest.TestCase):
         config.make_service_dict('foo', {'ports': ['8000']})
 
 
+class MergeTest(unittest.TestCase):
+    def test_merge_volumes_empty(self):
+        service_dict = config.merge_service_dicts({}, {})
+        self.assertNotIn('volumes', service_dict)
+
+    def test_merge_volumes_no_override(self):
+        service_dict = config.merge_service_dicts(
+            {'volumes': ['/foo:/code', '/data']},
+            {},
+        )
+        self.assertEqual(set(service_dict['volumes']), set(['/foo:/code', '/data']))
+
+    def test_merge_volumes_no_base(self):
+        service_dict = config.merge_service_dicts(
+            {},
+            {'volumes': ['/bar:/code']},
+        )
+        self.assertEqual(set(service_dict['volumes']), set(['/bar:/code']))
+
+    def test_merge_volumes_override_explicit_path(self):
+        service_dict = config.merge_service_dicts(
+            {'volumes': ['/foo:/code', '/data']},
+            {'volumes': ['/bar:/code']},
+        )
+        self.assertEqual(set(service_dict['volumes']), set(['/bar:/code', '/data']))
+
+    def test_merge_volumes_add_explicit_path(self):
+        service_dict = config.merge_service_dicts(
+            {'volumes': ['/foo:/code', '/data']},
+            {'volumes': ['/bar:/code', '/quux:/data']},
+        )
+        self.assertEqual(set(service_dict['volumes']), set(['/bar:/code', '/quux:/data']))
+
+    def test_merge_volumes_remove_explicit_path(self):
+        service_dict = config.merge_service_dicts(
+            {'volumes': ['/foo:/code', '/quux:/data']},
+            {'volumes': ['/bar:/code', '/data']},
+        )
+        self.assertEqual(set(service_dict['volumes']), set(['/bar:/code', '/data']))
+
+
 class EnvTest(unittest.TestCase):
     def test_parse_environment_as_list(self):
-        environment =[
+        environment = [
             'NORMAL=F1',
             'CONTAINS_EQUALS=F=2',
             'TRAILING_EQUALS=',
@@ -75,9 +117,8 @@ class EnvTest(unittest.TestCase):
         os.environ['ENV_DEF'] = 'E3'
 
         service_dict = config.make_service_dict(
-            'foo',
-            {
-               'environment': {
+            'foo', {
+                'environment': {
                     'FILE_DEF': 'F1',
                     'FILE_DEF_EMPTY': '',
                     'ENV_DEF': None,
@@ -134,6 +175,7 @@ class EnvTest(unittest.TestCase):
             service_dict['environment'],
             {'FILE_DEF': 'F1', 'FILE_DEF_EMPTY': '', 'ENV_DEF': 'E3', 'NO_DEF': ''},
         )
+
 
 class ExtendsTest(unittest.TestCase):
     def test_extends(self):
@@ -192,10 +234,11 @@ class ExtendsTest(unittest.TestCase):
                 ],
             )
 
-
     def test_extends_validation(self):
         dictionary = {'extends': None}
-        load_config = lambda: config.make_service_dict('myweb', dictionary, working_dir='tests/fixtures/extends')
+
+        def load_config():
+            return config.make_service_dict('myweb', dictionary, working_dir='tests/fixtures/extends')
 
         self.assertRaisesRegexp(config.ConfigurationError, 'dictionary', load_config)
 
