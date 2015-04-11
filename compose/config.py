@@ -20,6 +20,7 @@ DOCKER_CONFIG_KEYS = [
     'links',
     'mem_limit',
     'net',
+    'pid',
     'ports',
     'privileged',
     'restart',
@@ -171,6 +172,9 @@ def process_container_options(service_dict, working_dir=None):
     if 'volumes' in service_dict:
         service_dict['volumes'] = resolve_host_paths(service_dict['volumes'], working_dir=working_dir)
 
+    if 'build' in service_dict:
+        service_dict['build'] = resolve_build_path(service_dict['build'], working_dir=working_dir)
+
     return service_dict
 
 
@@ -189,10 +193,29 @@ def merge_service_dicts(base, override):
             override.get('volumes'),
         )
 
-    for k in ALLOWED_KEYS:
-        if k not in ['environment', 'volumes']:
-            if k in override:
-                d[k] = override[k]
+    if 'image' in override and 'build' in d:
+        del d['build']
+
+    if 'build' in override and 'image' in d:
+        del d['image']
+
+    list_keys = ['ports', 'expose', 'external_links']
+
+    for key in list_keys:
+        if key in base or key in override:
+            d[key] = base.get(key, []) + override.get(key, [])
+
+    list_or_string_keys = ['dns', 'dns_search']
+
+    for key in list_or_string_keys:
+        if key in base or key in override:
+            d[key] = to_list(base.get(key)) + to_list(override.get(key))
+
+    already_merged_keys = ['environment', 'volumes'] + list_keys + list_or_string_keys
+
+    for k in set(ALLOWED_KEYS) - set(already_merged_keys):
+        if k in override:
+            d[k] = override[k]
 
     return d
 
@@ -306,9 +329,22 @@ def resolve_host_paths(volumes, working_dir=None):
 def resolve_host_path(volume, working_dir):
     container_path, host_path = split_volume(volume)
     if host_path is not None:
+        host_path = os.path.expanduser(host_path)
+        host_path = os.path.expandvars(host_path)
         return "%s:%s" % (expand_path(working_dir, host_path), container_path)
     else:
         return container_path
+
+
+def resolve_build_path(build_path, working_dir=None):
+    if working_dir is None:
+        raise Exception("No working_dir passed to resolve_build_path")
+
+    _path = expand_path(working_dir, build_path)
+    if not os.path.exists(_path) or not os.access(_path, os.R_OK):
+        raise ConfigurationError("build path %s either does not exist or is not accessible." % _path)
+    else:
+        return _path
 
 
 def merge_volumes(base, override):
@@ -346,6 +382,15 @@ def join_volume(pair):
 
 def expand_path(working_dir, path):
     return os.path.abspath(os.path.join(working_dir, path))
+
+
+def to_list(value):
+    if value is None:
+        return []
+    elif isinstance(value, six.string_types):
+        return [value]
+    else:
+        return value
 
 
 def get_service_name_from_net(net_config):

@@ -2,9 +2,8 @@ from __future__ import unicode_literals
 from __future__ import absolute_import
 from collections import namedtuple
 import logging
-import os
-from operator import attrgetter
 import re
+from operator import attrgetter
 import sys
 import six
 
@@ -25,6 +24,7 @@ DOCKER_START_KEYS = [
     'dns_search',
     'env_file',
     'net',
+    'pid',
     'privileged',
     'restart',
 ]
@@ -434,6 +434,7 @@ class Service(object):
         privileged = options.get('privileged', False)
         cap_add = options.get('cap_add', None)
         cap_drop = options.get('cap_drop', None)
+        pid = options.get('pid', None)
 
         dns = options.get('dns', None)
         if isinstance(dns, six.string_types):
@@ -457,6 +458,7 @@ class Service(object):
             restart_policy=restart,
             cap_add=cap_add,
             cap_drop=cap_drop,
+            pid_mode=pid
         )
 
     def _get_image_name(self, image):
@@ -586,8 +588,7 @@ def parse_repository_tag(s):
 
 def build_volume_binding(volume_spec):
     internal = {'bind': volume_spec.internal, 'ro': volume_spec.mode == 'ro'}
-    external = os.path.expanduser(volume_spec.external)
-    return os.path.abspath(os.path.expandvars(external)), internal
+    return volume_spec.external, internal
 
 
 def build_port_bindings(ports):

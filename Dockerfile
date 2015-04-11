@@ -24,18 +24,14 @@ RUN set -x \
  && rm -rf /var/lib/apt/lists/* \
  && curl -SsL 'https://bootstrap.pypa.io/get-pip.py' | python
 
-ENV ALL_DOCKER_VERSIONS 1.3.3 1.4.1 1.5.0 1.6.0-rc2
+ENV ALL_DOCKER_VERSIONS 1.6.0-rc4
 
- RUN set -ex; \
-     for v in 1.3.3 1.4.1 1.5.0; do \
-         curl -Ss https://get.docker.com/builds/Linux/x86_64/docker-$v -o /usr/local/bin/docker-$v; \
-         chmod +x /usr/local/bin/docker-$v; \
-     done; \
-     curl -Ss https://test.docker.com/builds/Linux/x86_64/docker-1.6.0-rc2 -o /usr/local/bin/docker-1.6.0-rc2; \
-     chmod +x /usr/local/bin/docker-1.6.0-rc2
+RUN set -ex; \
+    curl https://test.docker.com/builds/Linux/x86_64/docker-1.6.0-rc4 -o /usr/local/bin/docker-1.6.0-rc4; \
+    chmod +x /usr/local/bin/docker-1.6.0-rc4
 
 # Set the default Docker to be run
-RUN ln -s /usr/local/bin/docker-1.3.3 /usr/local/bin/docker
+RUN ln -s /usr/local/bin/docker-1.6.0-rc4 /usr/local/bin/docker
 
 WORKDIR /code
 ADD requirements*.txt tox.ini ./

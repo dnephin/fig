@@ -42,45 +42,149 @@ class ConfigTest(unittest.TestCase):
         config.make_service_dict('foo', {'ports': ['8000']})
 
 
-class MergeTest(unittest.TestCase):
-    def test_merge_volumes_empty(self):
+class VolumePathTest(unittest.TestCase):
+    @mock.patch.dict(os.environ)
+    def test_volume_binding_with_environ(self):
+        os.environ['VOLUME_PATH'] = '/host/path'
+        d = config.make_service_dict('foo', {'volumes': ['${VOLUME_PATH}:/container/path']}, working_dir='.')
+        self.assertEqual(d['volumes'], ['/host/path:/container/path'])
+
+    @mock.patch.dict(os.environ)
+    def test_volume_binding_with_home(self):
+        os.environ['HOME'] = '/home/user'
+        d = config.make_service_dict('foo', {'volumes': ['~:/container/path']}, working_dir='.')
+        self.assertEqual(d['volumes'], ['/home/user:/container/path'])
+
+
+class MergeVolumesTest(unittest.TestCase):
+    def test_empty(self):
         service_dict = config.merge_service_dicts({}, {})
         self.assertNotIn('volumes', service_dict)
 
-    def test_merge_volumes_no_override(self):
+    def test_no_override(self):
         service_dict = config.merge_service_dicts(
             {'volumes': ['/foo:/code', '/data']},
             {},
         )
         self.assertEqual(set(service_dict['volumes']), set(['/foo:/code', '/data']))
 
-    def test_merge_volumes_no_base(self):
+    def test_no_base(self):
         service_dict = config.merge_service_dicts(
             {},
             {'volumes': ['/bar:/code']},
         )
         self.assertEqual(set(service_dict['volumes']), set(['/bar:/code']))
 
-    def test_merge_volumes_override_explicit_path(self):
+    def test_override_explicit_path(self):
         service_dict = config.merge_service_dicts(
             {'volumes': ['/foo:/code', '/data']},
             {'volumes': ['/bar:/code']},
         )
         self.assertEqual(set(service_dict['volumes']), set(['/bar:/code', '/data']))
 
-    def test_merge_volumes_add_explicit_path(self):
+    def test_add_explicit_path(self):
         service_dict = config.merge_service_dicts(
             {'volumes': ['/foo:/code', '/data']},
             {'volumes': ['/bar:/code', '/quux:/data']},
         )
         self.assertEqual(set(service_dict['volumes']), set(['/bar:/code', '/quux:/data']))
 
-    def test_merge_volumes_remove_explicit_path(self):
+    def test_remove_explicit_path(self):
         service_dict = config.merge_service_dicts(
             {'volumes': ['/foo:/code', '/quux:/data']},
             {'volumes': ['/bar:/code', '/data']},
         )
         self.assertEqual(set(service_dict['volumes']), set(['/bar:/code', '/data']))
+
+    def test_merge_build_or_image_no_override(self):
+        self.assertEqual(
+            config.merge_service_dicts({'build': '.'}, {}),
+            {'build': '.'},
+        )
+
+        self.assertEqual(
+            config.merge_service_dicts({'image': 'redis'}, {}),
+            {'image': 'redis'},
+        )
+
+    def test_merge_build_or_image_override_with_same(self):
+        self.assertEqual(
+            config.merge_service_dicts({'build': '.'}, {'build': './web'}),
+            {'build': './web'},
+        )
+
+        self.assertEqual(
+            config.merge_service_dicts({'image': 'redis'}, {'image': 'postgres'}),
+            {'image': 'postgres'},
+        )
+
+    def test_merge_build_or_image_override_with_other(self):
+        self.assertEqual(
+            config.merge_service_dicts({'build': '.'}, {'image': 'redis'}),
+            {'image': 'redis'}
+        )
+
+        self.assertEqual(
+            config.merge_service_dicts({'image': 'redis'}, {'build': '.'}),
+            {'build': '.'}
+        )
+
+
+class MergeListsTest(unittest.TestCase):
+    def test_empty(self):
+        service_dict = config.merge_service_dicts({}, {})
+        self.assertNotIn('ports', service_dict)
+
+    def test_no_override(self):
+        service_dict = config.merge_service_dicts(
+            {'ports': ['10:8000', '9000']},
+            {},
+        )
+        self.assertEqual(set(service_dict['ports']), set(['10:8000', '9000']))
+
+    def test_no_base(self):
+        service_dict = config.merge_service_dicts(
+            {},
+            {'ports': ['10:8000', '9000']},
+        )
+        self.assertEqual(set(service_dict['ports']), set(['10:8000', '9000']))
+
+    def test_add_item(self):
+        service_dict = config.merge_service_dicts(
+            {'ports': ['10:8000', '9000']},
+            {'ports': ['20:8000']},
+        )
+        self.assertEqual(set(service_dict['ports']), set(['10:8000', '9000', '20:8000']))
+
+
+class MergeStringsOrListsTest(unittest.TestCase):
+    def test_no_override(self):
+        service_dict = config.merge_service_dicts(
+            {'dns': '8.8.8.8'},
+            {},
+        )
+        self.assertEqual(set(service_dict['dns']), set(['8.8.8.8']))
+
+    def test_no_base(self):
+        service_dict = config.merge_service_dicts(
+            {},
+            {'dns': '8.8.8.8'},
+        )
+        self.assertEqual(set(service_dict['dns']), set(['8.8.8.8']))
+
+    def test_add_string(self):
+        service_dict = config.merge_service_dicts(
+            {'dns': ['8.8.8.8']},
+            {'dns': '9.9.9.9'},
+        )
+        self.assertEqual(set(service_dict['dns']), set(['8.8.8.8', '9.9.9.9']))
+
+    def test_add_list(self):
+        service_dict = config.merge_service_dicts(
+            {'dns': '8.8.8.8'},
+            {'dns': ['9.9.9.9']},
+        )
+        self.assertEqual(set(service_dict['dns']), set(['8.8.8.8', '9.9.9.9']))
 
 
 class EnvTest(unittest.TestCase):
@@ -295,3 +399,36 @@ class ExtendsTest(unittest.TestCase):
         ]
 
         self.assertEqual(set(dicts[0]['volumes']), set(paths))
+
+
+class BuildPathTest(unittest.TestCase):
+    def setUp(self):
+        self.abs_context_path = os.path.join(os.getcwd(), 'tests/fixtures/build-ctx')
+
+    def test_nonexistent_path(self):
+        options = {'build': 'nonexistent.path'}
+        self.assertRaises(
+            config.ConfigurationError,
+            lambda: config.make_service_dict('foo', options, 'tests/fixtures/build-path'),
+        )
+
+    def test_relative_path(self):
+        relative_build_path = '../build-ctx/'
+        service_dict = config.make_service_dict(
+            'relpath',
+            {'build': relative_build_path},
+            working_dir='tests/fixtures/build-path'
+        )
+        self.assertEquals(service_dict['build'], self.abs_context_path)
+
+    def test_absolute_path(self):
+        service_dict = config.make_service_dict(
+            'abspath',
+            {'build': self.abs_context_path},
+            working_dir='tests/fixtures/build-path'
+        )
+        self.assertEquals(service_dict['build'], self.abs_context_path)
+
+    def test_from_file(self):
+        service_dict = config.load('tests/fixtures/build-path/docker-compose.yml')
+        self.assertEquals(service_dict, [{'name': 'foo', 'build': self.abs_context_path}])
