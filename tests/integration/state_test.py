@@ -26,7 +26,7 @@ class ProjectTestCase(DockerClientTestCase):
             'working_dir',
             [config.ConfigFile(None, cfg)])
         return Project.from_dicts(
-            name='composetest',
+            name=self.project_name,
             client=self.client,
             service_dicts=config.load(details))
 
@@ -186,8 +186,8 @@ class ProjectWithDependenciesTest(ProjectTestCase):
         web, = [c for c in containers if c.service == 'web']
         nginx, = [c for c in containers if c.service == 'nginx']
 
-        self.assertEqual(web.links(), ['composetest_db_1', 'db', 'db_1'])
-        self.assertEqual(nginx.links(), ['composetest_web_1', 'web', 'web_1'])
+        self.assertEqual(web.links(), ['%s_db_1' % self.project_name, 'db', 'db_1'])
+        self.assertEqual(nginx.links(), ['%s_web_1' % self.project_name, 'web', 'web_1'])
 
 
 class ServiceStateTest(DockerClientTestCase):
@@ -237,7 +237,7 @@ class ServiceStateTest(DockerClientTestCase):
         self.assertEqual(('recreate', [container]), web.convergence_plan())
 
     def test_trigger_recreate_with_image_change(self):
-        repo = 'composetest_myimage'
+        repo = '%s_myimage' % (self.project_name)
         tag = 'latest'
         image = '{}:{}'.format(repo, tag)
 

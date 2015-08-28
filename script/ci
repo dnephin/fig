@@ -13,6 +13,7 @@ docker version
 export DOCKER_VERSIONS=all
 STORAGE_DRIVER=${STORAGE_DRIVER:-overlay}
 export DOCKER_DAEMON_ARGS="--storage-driver=$STORAGE_DRIVER"
+export PYTEST_NUM_PROCS=5
 
 GIT_VOLUME="--volumes-from=$(hostname)"
 . script/test-versions

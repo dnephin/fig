@@ -23,7 +23,7 @@ class ProjectTest(DockerClientTestCase):
     def test_containers(self):
         web = self.create_service('web')
         db = self.create_service('db')
-        project = Project('composetest', [web, db], self.client)
+        project = Project(self.project_name, [web, db], self.client)
 
         project.up()
 
@@ -33,14 +33,14 @@ class ProjectTest(DockerClientTestCase):
     def test_containers_with_service_names(self):
         web = self.create_service('web')
         db = self.create_service('db')
-        project = Project('composetest', [web, db], self.client)
+        project = Project(self.project_name, [web, db], self.client)
 
         project.up()
 
         containers = project.containers(['web'])
         self.assertEqual(
             [c.name for c in containers],
-            ['composetest_web_1'])
+            ['%s_web_1' % self.project_name])
 
     def test_containers_with_extra_service(self):
         web = self.create_service('web')
@@ -51,7 +51,7 @@ class ProjectTest(DockerClientTestCase):
 
         self.create_service('extra').create_container()
 
-        project = Project('composetest', [web, db], self.client)
+        project = Project(self.project_name, [web, db], self.client)
         self.assertEqual(
             set(project.containers(stopped=True)),
             set([web_1, db_1]),
@@ -69,7 +69,7 @@ class ProjectTest(DockerClientTestCase):
             },
         })
         project = Project.from_dicts(
-            name='composetest',
+            name=self.project_name,
             service_dicts=service_dicts,
             client=self.client,
         )
@@ -82,15 +82,15 @@ class ProjectTest(DockerClientTestCase):
             self.client,
             image='busybox:latest',
             volumes=['/var/data'],
-            name='composetest_data_container',
-            labels={LABEL_PROJECT: 'composetest'},
+            name='%s_data_container' % self.project_name,
+            labels={LABEL_PROJECT: self.project_name},
         )
         project = Project.from_dicts(
-            name='composetest',
+            name=self.project_name,
             service_dicts=build_service_dicts({
                 'db': {
                     'image': 'busybox:latest',
-                    'volumes_from': ['composetest_data_container'],
+                    'volumes_from': ['%s_data_container' % self.project_name],
                 },
             }),
             client=self.client,
@@ -102,7 +102,7 @@ class ProjectTest(DockerClientTestCase):
         self.require_api_version('1.21')
         client = docker_client(version='1.21')
 
-        project = Project('composetest', [], client)
+        project = Project(self.project_name, [], client)
         assert project.get_network() is None
 
     def test_get_network(self):
@@ -117,7 +117,7 @@ class ProjectTest(DockerClientTestCase):
 
     def test_net_from_service(self):
         project = Project.from_dicts(
-            name='composetest',
+            name=self.project_name,
             service_dicts=build_service_dicts({
                 'net': {
                     'image': 'busybox:latest',
@@ -142,18 +142,18 @@ class ProjectTest(DockerClientTestCase):
         net_container = Container.create(
             self.client,
             image='busybox:latest',
-            name='composetest_net_container',
+            name='%s_net_container' % self.project_name,
             command='top',
-            labels={LABEL_PROJECT: 'composetest'},
+            labels={LABEL_PROJECT: self.project_name},
         )
         net_container.start()
 
         project = Project.from_dicts(
-            name='composetest',
+            name=self.project_name,
             service_dicts=build_service_dicts({
                 'web': {
                     'image': 'busybox:latest',
-                    'net': 'container:composetest_net_container'
+                    'net': 'container:%s_net_container' % self.project_name,
                 },
             }),
             client=self.client,
@@ -167,7 +167,7 @@ class ProjectTest(DockerClientTestCase):
     def test_start_pause_unpause_stop_kill_remove(self):
         web = self.create_service('web')
         db = self.create_service('db')
-        project = Project('composetest', [web, db], self.client)
+        project = Project(self.project_name, [web, db], self.client)
 
         project.start()
 
@@ -215,7 +215,7 @@ class ProjectTest(DockerClientTestCase):
     def test_project_up(self):
         web = self.create_service('web')
         db = self.create_service('db', volumes=['/var/db'])
-        project = Project('composetest', [web, db], self.client)
+        project = Project(self.project_name, [web, db], self.client)
         project.start()
         self.assertEqual(len(project.containers()), 0)
 
@@ -227,7 +227,7 @@ class ProjectTest(DockerClientTestCase):
     def test_project_up_starts_uncreated_services(self):
         db = self.create_service('db')
         web = self.create_service('web', links=[(db, 'db')])
-        project = Project('composetest', [db, web], self.client)
+        project = Project(self.project_name, [db, web], self.client)
         project.up(['db'])
         self.assertEqual(len(project.containers()), 1)
 
@@ -239,7 +239,7 @@ class ProjectTest(DockerClientTestCase):
     def test_recreate_preserves_volumes(self):
         web = self.create_service('web')
         db = self.create_service('db', volumes=['/etc'])
-        project = Project('composetest', [web, db], self.client)
+        project = Project(self.project_name, [web, db], self.client)
         project.start()
         self.assertEqual(len(project.containers()), 0)
 
@@ -258,7 +258,7 @@ class ProjectTest(DockerClientTestCase):
     def test_project_up_with_no_recreate_running(self):
         web = self.create_service('web')
         db = self.create_service('db', volumes=['/var/db'])
-        project = Project('composetest', [web, db], self.client)
+        project = Project(self.project_name, [web, db], self.client)
         project.start()
         self.assertEqual(len(project.containers()), 0)
 
@@ -278,7 +278,7 @@ class ProjectTest(DockerClientTestCase):
     def test_project_up_with_no_recreate_stopped(self):
         web = self.create_service('web')
         db = self.create_service('db', volumes=['/var/db'])
-        project = Project('composetest', [web, db], self.client)
+        project = Project(self.project_name, [web, db], self.client)
         project.start()
         self.assertEqual(len(project.containers()), 0)
 
@@ -305,7 +305,7 @@ class ProjectTest(DockerClientTestCase):
     def test_project_up_without_all_services(self):
         console = self.create_service('console')
         db = self.create_service('db')
-        project = Project('composetest', [console, db], self.client)
+        project = Project(self.project_name, [console, db], self.client)
         project.start()
         self.assertEqual(len(project.containers()), 0)
 
@@ -319,7 +319,7 @@ class ProjectTest(DockerClientTestCase):
         db = self.create_service('db', volumes=['/var/db'])
         web = self.create_service('web', links=[(db, 'db')])
 
-        project = Project('composetest', [web, db, console], self.client)
+        project = Project(self.project_name, [web, db, console], self.client)
         project.start()
         self.assertEqual(len(project.containers()), 0)
 
@@ -331,7 +331,7 @@ class ProjectTest(DockerClientTestCase):
 
     def test_project_up_starts_depends(self):
         project = Project.from_dicts(
-            name='composetest',
+            name=self.project_name,
             service_dicts=build_service_dicts({
                 'console': {
                     'image': 'busybox:latest',
@@ -366,7 +366,7 @@ class ProjectTest(DockerClientTestCase):
 
     def test_project_up_with_no_deps(self):
         project = Project.from_dicts(
-            name='composetest',
+            name=self.project_name,
             service_dicts=build_service_dicts({
                 'console': {
                     'image': 'busybox:latest',
@@ -403,20 +403,20 @@ class ProjectTest(DockerClientTestCase):
     def test_project_up_with_custom_network(self):
         self.require_api_version('1.21')
         client = docker_client(version='1.21')
-        network_name = 'composetest-custom'
+        network_name = '%s-custom' % self.project_name
 
         client.create_network(network_name)
         self.addCleanup(client.remove_network, network_name)
 
         web = self.create_service('web', net=Net(network_name))
-        project = Project('composetest', [web], client, use_networking=True)
+        project = Project(self.project_name, [web], client, use_networking=True)
         project.up()
 
         assert project.get_network() is None
 
     def test_unscale_after_restart(self):
         web = self.create_service('web')
-        project = Project('composetest', [web], self.client)
+        project = Project(self.project_name, [web], self.client)
 
         project.start()
 
