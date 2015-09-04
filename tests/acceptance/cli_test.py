@@ -435,7 +435,7 @@ class CLITestCase(DockerClientTestCase):
         )
 
     def test_run_service_with_entrypoint_overridden(self):
-        self.base_dir = 'tests/fixtures/dockerfile_with_entrypoint'
+        self.base_dir = 'tests/fixtures/dockerfile-with-entrypoint'
         name = 'service'
         self.dispatch(['run', '--entrypoint', '/bin/echo', name, 'helloworld'])
         service = self.project.get_service(name)
