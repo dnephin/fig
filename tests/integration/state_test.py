@@ -7,6 +7,7 @@ from __future__ import unicode_literals
 import py
 
 from .testcases import DockerClientTestCase
+from .testcases import LABEL_TEST_IMAGE
 from compose.config import config
 from compose.project import Project
 from compose.service import ConvergenceStrategy
@@ -259,8 +260,11 @@ class ServiceStateTest(DockerClientTestCase):
     def test_trigger_recreate_with_build(self):
         context = py.test.ensuretemp('test_trigger_recreate_with_build')
         self.addCleanup(context.remove)
+        base_image = (
+            "FROM busybox\n"
+            "LABEL %s=%s\n" % (LABEL_TEST_IMAGE, self.project_name)
+        )
 
-        base_image = "FROM busybox\nLABEL com.docker.compose.test_image=true\n"
         dockerfile = context.join('Dockerfile')
         dockerfile.write(base_image)
 

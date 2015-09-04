@@ -20,6 +20,9 @@ from compose.service import Service
 log = logging.getLogger(__name__)
 
 
+LABEL_TEST_IMAGE = 'com.docker.compose.test-image'
+
+
 def pull_busybox(client):
     try:
         client.inspect_image('busybox:latest')
@@ -41,7 +44,7 @@ class DockerClientTestCase(unittest.TestCase):
             self.client.kill(c['Id'])
             self.client.remove_container(c['Id'])
         for i in self.client.images(
-                filters={'label': 'com.docker.compose.test_image'}):
+                filters={'label': LABEL_TEST_IMAGE}):
             try:
                 self.client.remove_image(i)
             except Exception as e:
@@ -56,6 +59,7 @@ class DockerClientTestCase(unittest.TestCase):
         service_config = ServiceConfig('.', None, name, kwargs)
         options = process_service(service_config)
         options['environment'] = resolve_environment('.', kwargs)
+
         labels = options.setdefault('labels', {})
         labels['com.docker.compose.test-name'] = self.id()
 

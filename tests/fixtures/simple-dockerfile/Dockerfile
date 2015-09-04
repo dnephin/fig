@@ -1,3 +1,3 @@
 FROM busybox:latest
-LABEL com.docker.compose.test_image=true
+LABEL com.docker.compose.test-image=simple-dockerfile
 CMD echo "success"
