@@ -54,14 +54,15 @@ class Project(object):
             volumes_from = project.get_volumes_from(service_dict)
             net = project.get_net(service_dict)
 
-            project.services.append(
-                Service(
-                    client=client,
-                    project=name,
-                    links=links,
-                    net=net,
-                    volumes_from=volumes_from,
-                    **service_dict))
+            service = Service(
+                client=client,
+                project=name,
+                links=links,
+                net=net,
+                volumes_from=volumes_from,
+                **service_dict)
+            project.update_dependents(service)
+            project.services.append(service)
         return project
 
     @property
@@ -118,6 +119,10 @@ class Project(object):
             uniques = []
             [uniques.append(s) for s in services if s not in uniques]
             return uniques
+
+    def update_dependents(self, service):
+        for dependency in service.get_dependency_names():
+            self.get_service(dependency).dependents.append(service)
 
     def get_links(self, service_dict):
         links = []

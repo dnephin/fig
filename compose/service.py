@@ -115,6 +115,7 @@ class Service(object):
         links=None,
         volumes_from=None,
         net=None,
+        dependents=None,
         **options
     ):
         if not re.match('^%s+$' % VALID_NAME_CHARS, project):
@@ -126,6 +127,7 @@ class Service(object):
         self.links = links or []
         self.volumes_from = volumes_from or []
         self.net = net or Net(None)
+        self.dependents = dependents or []
         self.options = options
 
     def containers(self, stopped=False, one_off=False, filters={}):
