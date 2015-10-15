@@ -86,14 +86,13 @@ class ServiceTest(DockerClientTestCase):
         service.start_container(container)
         assert container.get_mount('/var/db')
 
-    @pytest.mark.skipif(is_swarm(), reason="Volume driver not working yet.")
     def test_create_container_with_volume_driver(self):
         service = self.create_service('db', volume_driver='foodriver')
         container = service.create_container()
         service.start_container(container)
         self.assertEqual('foodriver', container.get('HostConfig.VolumeDriver'))
 
-    @pytest.mark.skipif(is_swarm(), reason="CPU set return value is off")
+    @pytest.mark.skipif(is_swarm(), reason="CPU shares is modified by swarm")
     def test_create_container_with_cpu_shares(self):
         service = self.create_service('db', cpu_shares=3)
         container = service.create_container()
@@ -232,7 +231,6 @@ class ServiceTest(DockerClientTestCase):
         self.assertIn(volume_container_2.id + ':rw',
                       host_container.get('HostConfig.VolumesFrom'))
 
-    @pytest.mark.skipif(is_swarm(), reason="affinity seems to be stripped?")
     def test_execute_convergence_plan_recreate(self):
         service = self.create_service(
             'db',
@@ -261,9 +259,10 @@ class ServiceTest(DockerClientTestCase):
         self.assertIn('FOO=2', new_container.get('Config.Env'))
         self.assertEqual(new_container.name, 'composetest_db_1')
         self.assertEqual(new_container.get_mount('/etc')['Source'], volume_path)
-        self.assertIn(
-            'affinity:container==%s' % old_container.id,
-            new_container.get('Config.Env'))
+
+        self.assertEqual(
+            new_container.get('Config.Labels')['com.docker.swarm.affinities:container'],
+            '=' + old_container.id)
 
         self.assertEqual(len(self.client.containers(all=True)), num_containers_before)
         self.assertNotEqual(old_container.id, new_container.id)

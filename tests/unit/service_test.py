@@ -268,12 +268,9 @@ class ServiceTest(unittest.TestCase):
             opts['labels'][LABEL_CONFIG_HASH],
             'f8bfa1058ad1f4231372a0b1639f0dfdb574dafff4e8d7938049ae993f7cf1fc')
         self.assertEqual(
-            opts['environment'],
-            {
-                'affinity:container': '=ababab',
-                'also': 'real',
-            }
-        )
+            opts['labels']['com.docker.swarm.affinities:container'],
+            '=ababab')
+        self.assertEqual(opts['environment'], {'also': 'real'})
 
     def test_get_container_not_found(self):
         self.mock_client.containers.return_value = []

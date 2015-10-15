@@ -603,13 +603,15 @@ class Service(object):
             self.options.get('environment'),
             override_options.get('environment'))
 
-        if previous_container:
-            container_options['environment']['affinity:container'] = ('=' + previous_container.id)
-
         container_options['image'] = self.image_name
 
+        labels = dict(container_options.setdefault('labels', {}))
+        if previous_container:
+            labels['com.docker.swarm.affinities:container'] = (
+                '=' + previous_container.id)
+
         container_options['labels'] = build_container_labels(
-            container_options.get('labels', {}),
+            labels,
             self.labels(one_off=one_off),
             number,
             self.config_hash if add_config_hash else None)
