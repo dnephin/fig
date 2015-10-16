@@ -46,6 +46,8 @@ Bug Fixes
 -   Fixed `build` when running against swarm
 -   `~` is no longer expanded on the host when included as part of a container
     volume path
+-   `pull` with a list of service names will no longer pull all dependent
+    services.
 
 
 
