@@ -18,6 +18,10 @@ from compose.progress_stream import stream_output
 from compose.service import Service
 
 
+def is_swarm():
+    return os.environ.get('IS_SWARM_TEST')
+
+
 def pull_busybox(client):
     client.pull('busybox:latest', stream=False)
 
@@ -50,6 +54,13 @@ def v2_only():
         return wrapper
 
     return decorator
+
+
+def assert_container_port(actual, expected):
+    if is_swarm():
+        assert actual.endswith(':%s' % expected)
+    else:
+        assert actual == '0.0.0.0:%s' % expected
 
 
 class DockerClientTestCase(unittest.TestCase):

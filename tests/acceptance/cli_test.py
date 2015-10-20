@@ -11,14 +11,17 @@ import time
 from collections import namedtuple
 from operator import attrgetter
 
+import pytest
 import yaml
 from docker import errors
 
 from .. import mock
 from compose.cli.command import get_project
 from compose.container import Container
+from tests.integration.testcases import assert_container_port
 from tests.integration.testcases import DockerClientTestCase
 from tests.integration.testcases import get_links
+from tests.integration.testcases import is_swarm
 from tests.integration.testcases import pull_busybox
 from tests.integration.testcases import v2_only
 
@@ -231,6 +234,7 @@ class CLITestCase(DockerClientTestCase):
             'Pulling simple (busybox:latest)...',
         ]
 
+    @pytest.mark.skipif(is_swarm(), reason="swarm incompatible error message")
     def test_pull_with_digest(self):
         result = self.dispatch(['-f', 'digest.yml', 'pull'])
 
@@ -239,6 +243,7 @@ class CLITestCase(DockerClientTestCase):
                 'sha256:38a203e1986cf79639cfb9b2e1d6e773de84002feea2d4eb006b520'
                 '04ee8502d)...') in result.stderr
 
+    @pytest.mark.skipif(is_swarm(), reason="swarm incompatible error message")
     def test_pull_with_ignore_pull_failures(self):
         result = self.dispatch([
             '-f', 'ignore-pull-failures.yml',
@@ -265,6 +270,11 @@ class CLITestCase(DockerClientTestCase):
         assert BUILD_CACHE_TEXT not in result.stdout
         assert BUILD_PULL_TEXT not in result.stdout
 
+    @pytest.mark.skipif(
+        True,
+        reason="Disable on swarm. Assumes the same node that built the image "
+               "will also run the next build."
+    )
     def test_build_pull(self):
         # Make sure we have the latest busybox already
         pull_busybox(self.client)
@@ -275,6 +285,11 @@ class CLITestCase(DockerClientTestCase):
         assert BUILD_CACHE_TEXT in result.stdout
         assert BUILD_PULL_TEXT in result.stdout
 
+    @pytest.mark.skipif(
+        True,
+        reason="Disable on swarm. Assumes the same node that built the image "
+               "will also run the next build."
+    )
     def test_build_no_cache_pull(self):
         # Make sure we have the latest busybox already
         pull_busybox(self.client)
@@ -846,49 +861,43 @@ class CLITestCase(DockerClientTestCase):
         self.assertEqual(port_random, None)
         self.assertEqual(port_assigned, None)
 
+    @pytest.mark.skipif(is_swarm(), reason="ip returned by swarm is 172.17.10.x")
     def test_run_service_with_map_ports(self):
         # create one off container
         self.base_dir = 'tests/fixtures/ports-composefile'
         self.dispatch(['run', '-d', '--service-ports', 'simple'])
-        container = self.project.get_service('simple').containers(one_off=True)[0]
+        container, = self.project.get_service('simple').containers(one_off=True)
 
-        # get port information
-        port_random = container.get_local_port(3000)
-        port_assigned = container.get_local_port(3001)
-        port_range = container.get_local_port(3002), container.get_local_port(3003)
+        assert container.get_local_port(3000)
+        assert_container_port(container.get_local_port(3001), 49152)
+        assert_container_port(container.get_local_port(3002), 49153)
+        assert_container_port(container.get_local_port(3003), 49154)
 
-        # close all one off containers we just created
-        container.stop()
-
-        # check the ports
-        self.assertNotEqual(port_random, None)
-        self.assertIn("0.0.0.0", port_random)
-        self.assertEqual(port_assigned, "0.0.0.0:49152")
-        self.assertEqual(port_range[0], "0.0.0.0:49153")
-        self.assertEqual(port_range[1], "0.0.0.0:49154")
-
+    @pytest.mark.skipif(is_swarm(), reason="ip returned by swarm is 172.17.10.x")
     def test_run_service_with_explicitly_maped_ports(self):
         # create one off container
         self.base_dir = 'tests/fixtures/ports-composefile'
-        self.dispatch(['run', '-d', '-p', '30000:3000', '--publish', '30001:3001', 'simple'])
-        container = self.project.get_service('simple').containers(one_off=True)[0]
+        self.dispatch([
+            'run', '-d',
+            '-p', '30000:3000',
+            '--publish', '30001:3001',
+            'simple'
+        ])
+        container, = self.project.get_service('simple').containers(one_off=True)
 
-        # get port information
-        port_short = container.get_local_port(3000)
-        port_full = container.get_local_port(3001)
-
-        # close all one off containers we just created
-        container.stop()
-
-        # check the ports
-        self.assertEqual(port_short, "0.0.0.0:30000")
-        self.assertEqual(port_full, "0.0.0.0:30001")
+        assert_container_port(container.get_local_port(3000), 30000)
+        assert_container_port(container.get_local_port(3001), 30001)
 
     def test_run_service_with_explicitly_maped_ip_ports(self):
         # create one off container
         self.base_dir = 'tests/fixtures/ports-composefile'
-        self.dispatch(['run', '-d', '-p', '127.0.0.1:30000:3000', '--publish', '127.0.0.1:30001:3001', 'simple'], None)
-        container = self.project.get_service('simple').containers(one_off=True)[0]
+        self.dispatch([
+            'run', '-d',
+            '-p', '127.0.0.1:30000:3000',
+            '--publish', '127.0.0.1:30001:3001',
+            'simple'
+        ])
+        container, = self.project.get_service('simple').containers(one_off=True)
 
         # get port information
         port_short = container.get_local_port(3000)
@@ -1188,9 +1197,10 @@ class CLITestCase(DockerClientTestCase):
             return result.stdout.rstrip()
 
         self.assertEqual(get_port(3000), container.get_local_port(3000))
-        self.assertEqual(get_port(3001), "0.0.0.0:49152")
-        self.assertEqual(get_port(3002), "0.0.0.0:49153")
+        assert_container_port(get_port(3001), 49152)
+        assert_container_port(get_port(3002), 49153)
 
+    @pytest.mark.skipif(is_swarm(), reason="swarm bug #1289 - crash in swarm")
     def test_port_with_scale(self):
         self.base_dir = 'tests/fixtures/ports-composefile-scale'
         self.dispatch(['scale', 'simple=2'], None)
