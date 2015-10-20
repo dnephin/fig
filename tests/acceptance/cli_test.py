@@ -234,7 +234,7 @@ class CLITestCase(DockerClientTestCase):
             'Pulling simple (busybox:latest)...',
         ]
 
-    @pytest.mark.skipif(is_swarm(), reason="swarm incompatible error message")
+    @pytest.mark.skipif(is_swarm(), reason="Swarm does not handle digest correctly.")
     def test_pull_with_digest(self):
         result = self.dispatch(['-f', 'digest.yml', 'pull'])
 
@@ -243,7 +243,6 @@ class CLITestCase(DockerClientTestCase):
                 'sha256:38a203e1986cf79639cfb9b2e1d6e773de84002feea2d4eb006b520'
                 '04ee8502d)...') in result.stderr
 
-    @pytest.mark.skipif(is_swarm(), reason="swarm incompatible error message")
     def test_pull_with_ignore_pull_failures(self):
         result = self.dispatch([
             '-f', 'ignore-pull-failures.yml',
@@ -270,11 +269,6 @@ class CLITestCase(DockerClientTestCase):
         assert BUILD_CACHE_TEXT not in result.stdout
         assert BUILD_PULL_TEXT not in result.stdout
 
-    @pytest.mark.skipif(
-        True,
-        reason="Disable on swarm. Assumes the same node that built the image "
-               "will also run the next build."
-    )
     def test_build_pull(self):
         # Make sure we have the latest busybox already
         pull_busybox(self.client)
@@ -283,13 +277,10 @@ class CLITestCase(DockerClientTestCase):
 
         result = self.dispatch(['build', '--pull', 'simple'])
         assert BUILD_CACHE_TEXT in result.stdout
-        assert BUILD_PULL_TEXT in result.stdout
+        # Swarm output doesn't include this
+        if not is_swarm():
+            assert BUILD_PULL_TEXT in result.stdout
 
-    @pytest.mark.skipif(
-        True,
-        reason="Disable on swarm. Assumes the same node that built the image "
-               "will also run the next build."
-    )
     def test_build_no_cache_pull(self):
         # Make sure we have the latest busybox already
         pull_busybox(self.client)
@@ -298,7 +289,9 @@ class CLITestCase(DockerClientTestCase):
 
         result = self.dispatch(['build', '--no-cache', '--pull', 'simple'])
         assert BUILD_CACHE_TEXT not in result.stdout
-        assert BUILD_PULL_TEXT in result.stdout
+        # Swarm output doesn't include this
+        if not is_swarm():
+            assert BUILD_PULL_TEXT in result.stdout
 
     def test_build_failed(self):
         self.base_dir = 'tests/fixtures/simple-failing-dockerfile'
@@ -424,7 +417,8 @@ class CLITestCase(DockerClientTestCase):
         network_name = self.project.networks.networks['default'].full_name
         networks = self.client.networks(names=[network_name])
         self.assertEqual(len(networks), 1)
-        self.assertEqual(networks[0]['Driver'], 'bridge')
+        expected = 'overlay' if is_swarm() else 'bridge'
+        self.assertEqual(networks[0]['Driver'], expected)
         assert 'com.docker.network.bridge.enable_icc' not in networks[0]['Options']
 
         network = self.client.inspect_network(networks[0]['Id'])
@@ -861,7 +855,6 @@ class CLITestCase(DockerClientTestCase):
         self.assertEqual(port_random, None)
         self.assertEqual(port_assigned, None)
 
-    @pytest.mark.skipif(is_swarm(), reason="ip returned by swarm is 172.17.10.x")
     def test_run_service_with_map_ports(self):
         # create one off container
         self.base_dir = 'tests/fixtures/ports-composefile'
@@ -873,7 +866,6 @@ class CLITestCase(DockerClientTestCase):
         assert_container_port(container.get_local_port(3002), 49153)
         assert_container_port(container.get_local_port(3003), 49154)
 
-    @pytest.mark.skipif(is_swarm(), reason="ip returned by swarm is 172.17.10.x")
     def test_run_service_with_explicitly_maped_ports(self):
         # create one off container
         self.base_dir = 'tests/fixtures/ports-composefile'
@@ -899,9 +891,8 @@ class CLITestCase(DockerClientTestCase):
         ])
         container, = self.project.get_service('simple').containers(one_off=True)
 
-        # get port information
-        port_short = container.get_local_port(3000)
-        port_full = container.get_local_port(3001)
+        assert container.get_local_port(3000) == "127.0.0.1:30000"
+        assert container.get_local_port(3001) == "127.0.0.1:30001"
 
         # close all one off containers we just created
         container.stop()
@@ -1200,7 +1191,6 @@ class CLITestCase(DockerClientTestCase):
         assert_container_port(get_port(3001), 49152)
         assert_container_port(get_port(3002), 49153)
 
-    @pytest.mark.skipif(is_swarm(), reason="swarm bug #1289 - crash in swarm")
     def test_port_with_scale(self):
         self.base_dir = 'tests/fixtures/ports-composefile-scale'
         self.dispatch(['scale', 'simple=2'], None)

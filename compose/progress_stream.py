@@ -55,7 +55,8 @@ def stream_output(output, stream):
 
 def print_output_event(event, stream, is_terminal):
     if 'errorDetail' in event:
-        raise StreamOutputError(event['errorDetail']['message'])
+        # Swarm returns error messages as status before the error
+        raise StreamOutputError(event['errorDetail'].get('message', ''))
 
     terminator = ''
 

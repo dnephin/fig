@@ -761,11 +761,7 @@ class Service(object):
         repo, tag, separator = parse_repository_tag(self.options['image'])
         tag = tag or 'latest'
         log.info('Pulling %s (%s%s%s)...' % (self.name, repo, separator, tag))
-        output = self.client.pull(
-            repo,
-            tag=tag,
-            stream=True,
-        )
+        output = self.client.pull(repo, tag=tag, stream=True)
 
         try:
             stream_output(output, sys.stdout)

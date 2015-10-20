@@ -757,7 +757,6 @@ class ServiceTest(DockerClientTestCase):
             captured_output
         )
 
-    @pytest.mark.skipif(is_swarm(), reason="swarm bug #1289 - crash in swarm")
     def test_scale_sets_ports(self):
         service = self.create_service('web', ports=['8000'])
         service.scale(2)

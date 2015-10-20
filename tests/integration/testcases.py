@@ -112,6 +112,8 @@ class DockerClientTestCase(unittest.TestCase):
         stream_output(build_output, open('/dev/null', 'w'))
 
     def require_api_version(self, minimum):
+        if is_swarm():
+            return
         api_version = self.client.version()['ApiVersion']
         if version_lt(api_version, minimum):
             skip("API version is too low ({} < {})".format(api_version, minimum))
