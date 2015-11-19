@@ -894,13 +894,6 @@ class CLITestCase(DockerClientTestCase):
         assert container.get_local_port(3000) == "127.0.0.1:30000"
         assert container.get_local_port(3001) == "127.0.0.1:30001"
 
-        # close all one off containers we just created
-        container.stop()
-
-        # check the ports
-        self.assertEqual(port_short, "127.0.0.1:30000")
-        self.assertEqual(port_full, "127.0.0.1:30001")
-
     def test_run_with_expose_ports(self):
         # create one off container
         self.base_dir = 'tests/fixtures/expose-composefile'
@@ -919,9 +912,6 @@ class CLITestCase(DockerClientTestCase):
         assert ports['3005/tcp'] is None
         assert ports['3006/udp'] is None
         assert ports['3007/udp'] is None
-
-        # close all one off containers we just created
-        container.stop()
 
     def test_run_with_custom_name(self):
         self.base_dir = 'tests/fixtures/environment-composefile'

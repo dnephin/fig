@@ -1,0 +1,25 @@
+#!/bin/bash
+
+set -e
+
+BUILD_ID="swarm${BUILD_NUMBER-$USER}"
+COMPOSE="docker-compose -f tests/environment/swarm.yml -p ${BUILD_ID}"
+
+$COMPOSE up -d
+
+function on_exit() {
+    $COMPOSE stop
+    $COMPOSE rm -f
+}
+trap "on_exit" EXIT
+
+
+ip=$(docker inspect -f '{{.NetworkSettings.IPAddress}}' ${BUILD_ID}_swarm.master_1)
+
+echo "Using host $ip"
+
+# TODO:
+#DOCKER_HOST="tcp://$ip:2375" timeout 30 tests/environment/wait_on_swarm
+sleep 20
+
+DOCKER_HOST="tcp://$ip:2375" IS_SWARM_TEST=1 tox -e py27
