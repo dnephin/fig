@@ -8,6 +8,7 @@ import time
 from collections import namedtuple
 from operator import attrgetter
 
+import pytest
 from docker import errors
 
 from .. import mock
@@ -169,6 +170,7 @@ class CLITestCase(DockerClientTestCase):
         assert 'Pulling another (nonexisting-image:latest)...' in result.stderr
         assert 'Error: image library/nonexisting-image:latest not found' in result.stderr
 
+    @pytest.mark.buildimage
     def test_build_plain(self):
         self.base_dir = 'tests/fixtures/simple-dockerfile'
         self.dispatch(['build', 'simple'])
@@ -177,6 +179,7 @@ class CLITestCase(DockerClientTestCase):
         assert BUILD_CACHE_TEXT in result.stdout
         assert BUILD_PULL_TEXT not in result.stdout
 
+    @pytest.mark.buildimage
     def test_build_no_cache(self):
         self.base_dir = 'tests/fixtures/simple-dockerfile'
         self.dispatch(['build', 'simple'])
@@ -185,6 +188,7 @@ class CLITestCase(DockerClientTestCase):
         assert BUILD_CACHE_TEXT not in result.stdout
         assert BUILD_PULL_TEXT not in result.stdout
 
+    @pytest.mark.buildimage
     def test_build_pull(self):
         self.base_dir = 'tests/fixtures/simple-dockerfile'
         self.dispatch(['build', 'simple'], None)
@@ -193,6 +197,7 @@ class CLITestCase(DockerClientTestCase):
         assert BUILD_CACHE_TEXT in result.stdout
         assert BUILD_PULL_TEXT in result.stdout
 
+    @pytest.mark.buildimage
     def test_build_no_cache_pull(self):
         self.base_dir = 'tests/fixtures/simple-dockerfile'
         self.dispatch(['build', 'simple'])
@@ -201,6 +206,7 @@ class CLITestCase(DockerClientTestCase):
         assert BUILD_CACHE_TEXT not in result.stdout
         assert BUILD_PULL_TEXT in result.stdout
 
+    @pytest.mark.buildimage
     def test_build_failed(self):
         self.base_dir = 'tests/fixtures/simple-failing-dockerfile'
         self.dispatch(['build', 'simple'], returncode=1)
@@ -215,6 +221,7 @@ class CLITestCase(DockerClientTestCase):
         self.addCleanup(self.client.remove_container, containers[0].id)
         assert len(containers) == 1
 
+    @pytest.mark.buildimage
     def test_build_failed_forcerm(self):
         self.base_dir = 'tests/fixtures/simple-failing-dockerfile'
         self.dispatch(['build', '--force-rm', 'simple'], returncode=1)
@@ -414,6 +421,7 @@ class CLITestCase(DockerClientTestCase):
 
         self.assertEqual(old_ids, new_ids)
 
+    @pytest.mark.buildimage
     def test_run_without_command(self):
         self.base_dir = 'tests/fixtures/commands-composefile'
         self.check_build('tests/fixtures/simple-dockerfile', tag='composetest_test')
@@ -434,6 +442,7 @@ class CLITestCase(DockerClientTestCase):
             [u'/bin/true'],
         )
 
+    @pytest.mark.buildimage
     def test_run_service_with_entrypoint_overridden(self):
         self.base_dir = 'tests/fixtures/dockerfile-with-entrypoint'
         name = 'service'
@@ -575,6 +584,7 @@ class CLITestCase(DockerClientTestCase):
         container, = service.containers(stopped=True, one_off=True)
         self.assertEqual(container.name, name)
 
+    @pytest.mark.buildimage
     def test_run_with_networking(self):
         self.require_api_version('1.21')
         client = docker_client(version='1.21')

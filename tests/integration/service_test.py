@@ -6,6 +6,7 @@ import shutil
 import tempfile
 from os import path
 
+import pytest
 from docker.errors import APIError
 from six import StringIO
 from six import text_type
@@ -348,6 +349,7 @@ class ServiceTest(DockerClientTestCase):
         self.assertEqual(container, containers[0])
         self.assertTrue(container.is_running)
 
+    @pytest.mark.buildimage
     def test_execute_convergence_plan_with_image_declared_volume(self):
         service = Service(
             project=self.project_name,
@@ -366,6 +368,7 @@ class ServiceTest(DockerClientTestCase):
         self.assertEqual(list(new_container.get('Volumes')), ['/data'])
         self.assertEqual(new_container.get('Volumes')['/data'], volume_path)
 
+    @pytest.mark.buildimage
     def test_execute_convergence_plan_when_image_volume_masks_config(self):
         service = Service(
             project=self.project_name,
@@ -486,6 +489,7 @@ class ServiceTest(DockerClientTestCase):
                 'db'])
         )
 
+    @pytest.mark.buildimage
     def test_start_container_builds_images(self):
         service = Service(
             name='test',
@@ -498,6 +502,7 @@ class ServiceTest(DockerClientTestCase):
         self.assertIn(b'success', container.logs())
         self.assertEqual(len(self.client.images(name='%s_test' % self.project_name)), 1)
 
+    @pytest.mark.buildimage
     def test_start_container_uses_tagged_image_if_it_exists(self):
         self.check_build(
             'tests/fixtures/simple-dockerfile',
@@ -518,6 +523,7 @@ class ServiceTest(DockerClientTestCase):
         self.assertEqual(list(container['NetworkSettings']['Ports'].keys()), ['8000/tcp'])
         self.assertNotEqual(container['NetworkSettings']['Ports']['8000/tcp'][0]['HostPort'], '8000')
 
+    @pytest.mark.buildimage
     def test_build(self):
         base_dir = tempfile.mkdtemp()
         self.addCleanup(shutil.rmtree, base_dir)
@@ -528,6 +534,7 @@ class ServiceTest(DockerClientTestCase):
         self.create_service('web', build=base_dir).build()
         self.assertEqual(len(self.client.images(name='%s_web' % self.project_name)), 1)
 
+    @pytest.mark.buildimage
     def test_build_non_ascii_filename(self):
         base_dir = tempfile.mkdtemp()
         self.addCleanup(shutil.rmtree, base_dir)
