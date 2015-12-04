@@ -1,0 +1,37 @@
+#!/bin/bash
+
+set -e
+
+VERSION=1.6.0
+GITHUB_API=https://api.github.com/repos/
+REPO=docker/compose
+
+function handle_failure() {
+    echo "Cherry-pick failed. Entering a new shell to merge."
+    $SHELL || true
+}
+
+# TODO: add requires jq, hub
+
+milestone=$(
+    curl -s "${GITHUB_API}${REPO}/milestones" |
+    jq '.[] | select(.title == "'${VERSION}'") | .number'
+)
+
+if [ -z "$milestone" ]; then
+    >&2 echo "Milestone $VERSION not found."
+    exit -1
+fi
+
+
+url="${GITHUB_API}${REPO}/issues?milestone=${milestone}&state=closed&sort=updated&direction=asc"
+
+echo "$(curl -s $url | jq '.[].number')" | while read -r pr; do
+    # TODO: filter to only merged prs, requires a query to /pulls/pr-num
+    # TODO: filter out prs already merged into this branch
+
+    #hub am $pr || handle_failure
+    echo $pr
+    # TODO: amend commit to include a sentinel which can be used to track 
+    # already merged PRs
+done 
