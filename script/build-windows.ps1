@@ -39,10 +39,13 @@ if (Test-Path venv) {
 Get-ChildItem -Recurse -Include *.pyc | foreach ($_) { Remove-Item $_.FullName }
 
 # Create virtualenv
-virtualenv .\venv
+virtualenv -p C:\Python34-x64\python.exe .\venv
 
 # pip and pyinstaller generate lots of warnings, so we need to ignore them
 $ErrorActionPreference = "Continue"
+
+# Install six on system
+C:\Python34-x64\Scripts\pip.exe install six
 
 # Install dependencies
 .\venv\Scripts\pip install pypiwin32==219

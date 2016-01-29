@@ -14,7 +14,7 @@ environment:
   BINTRAY_PATH: "docker-compose/master/windows/master/docker-compose-Windows-x86_64.exe"
 
 test_script:
-  - "tox -e py27,py34 -- tests/unit"
+    #  - "tox -e py27,py34 -- tests/unit"
   - ps: ".\\script\\build-windows.ps1"
 
 deploy_script:
