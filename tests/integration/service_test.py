@@ -540,6 +540,7 @@ class ServiceTest(DockerClientTestCase):
         self.create_service('web', build={'context': base_dir}, image=image_name).build()
         assert self.client.inspect_image(image_name)
 
+    @pytest.mark.skipif(is_swarm(), reason="git not available on swarm image")
     def test_build_with_git_url(self):
         build_url = "https://github.com/dnephin/docker-build-from-url.git"
         service = self.create_service('buildwithurl', build={'context': build_url})
