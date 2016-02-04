@@ -14,12 +14,13 @@ function on_exit() {
 trap "on_exit" EXIT
 
 
-ip=$(docker inspect -f '{{.NetworkSettings.IPAddress}}' ${BUILD_ID}_swarm.master_1)
+network="${BUILD_ID}_default"
+ip=$(docker inspect -f "{{.NetworkSettings.Networks.${network}.IPAddress}}" ${BUILD_ID}_swarm.master_1)
+
 
 echo "Using host $ip"
+export DOCKER_HOST="tcp://$ip:2375"
+timeout 30 tests/environment/wait_on_swarm
 
-# TODO:
-#DOCKER_HOST="tcp://$ip:2375" timeout 30 tests/environment/wait_on_swarm
-sleep 20
-
-DOCKER_HOST="tcp://$ip:2375" IS_SWARM_TEST=1 tox -e py27
+export IS_SWARM_TEST=1
+tox -e py27
