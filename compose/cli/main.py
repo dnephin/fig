@@ -474,6 +474,7 @@ class TopLevelCommand(DocoptCommand):
                                   to the host.
             -T                    Disable pseudo-tty allocation. By default `docker-compose run`
                                   allocates a TTY.
+            -w, --workdir=""      Override the workdir
         """
         service = project.get_service(options['SERVICE'])
         detach = options['-d']
@@ -522,6 +523,9 @@ class TopLevelCommand(DocoptCommand):
 
         if options['--name']:
             container_options['name'] = options['--name']
+
+        if options['--workdir']:
+            container_options['working_dir'] = options['--workdir']
 
         run_one_off_container(container_options, project, service, options)
 
