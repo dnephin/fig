@@ -6,6 +6,8 @@ import os
 import mock
 import pytest
 
+from compose.config.interpolation import BlankDefaultDict
+from compose.config.interpolation import interpolate
 from compose.config.interpolation import interpolate_environment_variables
 
 
@@ -15,6 +17,14 @@ def mock_env():
         os.environ['USER'] = 'jenny'
         os.environ['FOO'] = 'bar'
         yield
+
+
+@pytest.fixture
+def variable_mapping():
+    return BlankDefaultDict({
+        'FOO': 'first',
+        'BAR': 'second',
+    })
 
 
 def test_interpolate_environment_variables_in_services(mock_env):
@@ -67,3 +77,16 @@ def test_interpolate_environment_variables_in_volumes(mock_env):
         'other': {},
     }
     assert interpolate_environment_variables(volumes, 'volume') == expected
+
+
+def test_interpolate_missing(variable_mapping):
+    assert interpolate("This ${missing} var", variable_mapping) == "This  var"
+
+
+def test_interpolate_with_value(variable_mapping):
+    assert interpolate("This $FOO var", variable_mapping) == "This first var"
+    assert interpolate("This ${FOO} var", variable_mapping) == "This first var"
+
+
+def test_interpolate_default_value(variable_mapping):
+    assert interpolate("ok ${missing:-def}", variable_mapping) == "ok def"

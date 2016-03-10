@@ -53,9 +53,33 @@ def recursive_interpolate(obj, mapping):
         return obj
 
 
+class TemplateWithDefaults(Template):
+    idpattern = r'[_a-z][_a-z0-9]*(?::-[_a-z0-9]+)?'
+
+    # Modified from python2.7/string.py
+    def substitute(self, mapping):
+        # Helper function for .sub()
+        def convert(mo):
+            # Check the most common path first.
+            named = mo.group('named') or mo.group('braced')
+            if named is not None:
+                if ':-' in named:
+                    var, _, default = named.partition(':-')
+                    return mapping.get(var, default)
+                val = mapping[named]
+                return '%s' % (val,)
+            if mo.group('escaped') is not None:
+                return self.delimiter
+            if mo.group('invalid') is not None:
+                self._invalid(mo)
+            raise ValueError('Unrecognized named group in pattern',
+                             self.pattern)
+        return self.pattern.sub(convert, self.template)
+
+
 def interpolate(string, mapping):
     try:
-        return Template(string).substitute(mapping)
+        return TemplateWithDefaults(string).substitute(mapping)
     except ValueError:
         raise InvalidInterpolation(string)
 
