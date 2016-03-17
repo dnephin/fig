@@ -24,6 +24,7 @@ def variable_mapping():
     return BlankDefaultDict({
         'FOO': 'first',
         'BAR': 'second',
+        'EMPTY': ''
     })
 
 
@@ -88,5 +89,15 @@ def test_interpolate_with_value(variable_mapping):
     assert interpolate("This ${FOO} var", variable_mapping) == "This first var"
 
 
-def test_interpolate_default_value(variable_mapping):
+def test_interpolate_param_substition_missing_none_or_empty(variable_mapping):
+    # see: http://tldp.org/LDP/abs/html/parameter-substitution.html
+    # ${parameter-default}, ${parameter:-default}
     assert interpolate("ok ${missing:-def}", variable_mapping) == "ok def"
+    assert interpolate("ok ${EMPTY:-def}", variable_mapping) == "ok def"
+
+
+def test_interpolate_param_substition_missing_only(variable_mapping):
+    # see: http://tldp.org/LDP/abs/html/parameter-substitution.html
+    # ${parameter-default}, ${parameter:-default}
+    assert interpolate("ok ${missing-def}", variable_mapping) == "ok def"
+    assert interpolate("ok ${EMPTY-def}", variable_mapping) == "ok "

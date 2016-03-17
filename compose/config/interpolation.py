@@ -54,7 +54,9 @@ def recursive_interpolate(obj, mapping):
 
 
 class TemplateWithDefaults(Template):
-    idpattern = r'[_a-z][_a-z0-9]*(?::-[_a-z0-9]+)?'
+    # implement bash like :- and - parameter substitution.
+    # see: http://tldp.org/LDP/abs/html/parameter-substitution.html
+    idpattern = r'([_a-z][_a-z0-9]*)(:?-[_a-z0-9]+)?'
 
     # Modified from python2.7/string.py
     def substitute(self, mapping):
@@ -64,8 +66,19 @@ class TemplateWithDefaults(Template):
             named = mo.group('named') or mo.group('braced')
             if named is not None:
                 if ':-' in named:
+                    # substitute missing, null, or empty parameters
                     var, _, default = named.partition(':-')
-                    return mapping.get(var, default)
+                    # get will only return default if property is missing, so
+                    # we need additional checks to replace null and empty.
+                    val = mapping.get(var)
+                    if (val is None or val is ''):
+                        val = default
+                    return '%s' % (val,)
+                if '-' in named:
+                    # subsitute only missing parameters
+                    var, _, default = named.partition('-')
+                    val = mapping.get(var, default)
+                    return '%s' % (val,)
                 val = mapping[named]
                 return '%s' % (val,)
             if mo.group('escaped') is not None:
