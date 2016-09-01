@@ -14,9 +14,7 @@ from operator import attrgetter
 from . import errors
 from . import signals
 from .. import __version__
-from ..bundle import get_image_digests
-from ..bundle import MissingDigests
-from ..bundle import serialize_bundle
+from .. import bundle
 from ..config import ConfigurationError
 from ..config import parse_environment
 from ..config.environment import Environment
@@ -229,64 +227,19 @@ class TopLevelCommand(object):
         automatically when bundling, pass `--push-images`. Only services with
         a `build` option specified will have their images pushed.
 
-        Usage: bundle [options]
+        Usage: bundle [options] [REPOTAG]
 
-        Options:
-            --push-images              Automatically push images for any services
-                                       which have a `build` option specified.
-
-            -o, --output PATH          Path to write the bundle file to.
-                                       Defaults to "<project name>.dab".
         """
         self.project = project_from_options('.', config_options)
         compose_config = get_config_from_options(self.project_dir, config_options)
 
-        output = options["--output"]
-        if not output:
-            output = "{}.dab".format(self.project.name)
-
         with errors.handle_connection_errors(self.project.client):
-            try:
-                image_digests = get_image_digests(
-                    self.project,
-                    allow_push=options['--push-images'],
-                )
-            except MissingDigests as e:
-                def list_images(images):
-                    return "\n".join("    {}".format(name) for name in sorted(images))
-
-                paras = ["Some images are missing digests."]
-
-                if e.needs_push:
-                    command_hint = (
-                        "Use `docker-compose push {}` to push them. "
-                        "You can do this automatically with `docker-compose bundle --push-images`."
-                        .format(" ".join(sorted(e.needs_push)))
-                    )
-                    paras += [
-                        "The following images can be pushed:",
-                        list_images(e.needs_push),
-                        command_hint,
-                    ]
-
-                if e.needs_pull:
-                    command_hint = (
-                        "Use `docker-compose pull {}` to pull them. "
-                        .format(" ".join(sorted(e.needs_pull)))
-                    )
-
-                    paras += [
-                        "The following images need to be pulled:",
-                        list_images(e.needs_pull),
-                        command_hint,
-                    ]
-
-                raise UserError("\n\n".join(paras))
-
-        with open(output, 'w') as f:
-            f.write(serialize_bundle(compose_config, image_digests))
-
-        log.info("Wrote bundle to {}".format(output))
+            image_ids = bundle.get_image_ids(self.project)
+            result = bundle.create_bundle(
+                self.project.client,
+                options['REPOTAG'],
+                bundle.to_bundle(compose_config, image_ids))
+        print(result['status'])
 
     def config(self, config_options, options):
         """

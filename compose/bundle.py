@@ -1,7 +1,6 @@
 from __future__ import absolute_import
 from __future__ import unicode_literals
 
-import json
 import logging
 
 import six
@@ -40,59 +39,30 @@ SUPPORTED_KEYS = {
 VERSION = '0.1'
 
 
-class NeedsPush(Exception):
-    def __init__(self, image_name):
-        self.image_name = image_name
+def create_bundle(client, repo_tag, bundle):
+    repo, tag, _ = parse_repository_tag(repo_tag)
+    # TODO: move to docker-py
+    return client._result(
+        client._post_json(
+            client._url("/bundles/create"),
+            bundle,
+            params={'fromSrc': '-', 'repo': repo, 'tag': tag}),
+        json=True)
 
 
-class NeedsPull(Exception):
-    def __init__(self, image_name):
-        self.image_name = image_name
+def get_image_ids(project):
+    return {
+        service.name: get_image_id(service)
+        for service in project.services
+    }
 
 
-class MissingDigests(Exception):
-    def __init__(self, needs_push, needs_pull):
-        self.needs_push = needs_push
-        self.needs_pull = needs_pull
-
-
-def serialize_bundle(config, image_digests):
-    return json.dumps(to_bundle(config, image_digests), indent=2, sort_keys=True)
-
-
-def get_image_digests(project, allow_push=False):
-    digests = {}
-    needs_push = set()
-    needs_pull = set()
-
-    for service in project.services:
-        try:
-            digests[service.name] = get_image_digest(
-                service,
-                allow_push=allow_push,
-            )
-        except NeedsPush as e:
-            needs_push.add(e.image_name)
-        except NeedsPull as e:
-            needs_pull.add(e.image_name)
-
-    if needs_push or needs_pull:
-        raise MissingDigests(needs_push, needs_pull)
-
-    return digests
-
-
-def get_image_digest(service, allow_push=False):
+def get_image_id(service):
     if 'image' not in service.options:
         raise UserError(
             "Service '{s.name}' doesn't define an image tag. An image name is "
             "required to generate a proper image digest for the bundle. Specify "
             "an image repo and tag with the 'image' option.".format(s=service))
-
-    _, _, separator = parse_repository_tag(service.options['image'])
-    # Compose file already uses a digest, no lookup required
-    if separator == '@':
-        return service.options['image']
 
     try:
         image = service.image()
@@ -103,45 +73,7 @@ def get_image_digest(service, allow_push=False):
             "You might need to run `docker-compose {action} {service}`."
             .format(service=service.name, action=action))
 
-    if image['RepoDigests']:
-        # TODO: pick a digest based on the image tag if there are multiple
-        # digests
-        return image['RepoDigests'][0]
-
-    if 'build' not in service.options:
-        raise NeedsPull(service.image_name)
-
-    if not allow_push:
-        raise NeedsPush(service.image_name)
-
-    return push_image(service)
-
-
-def push_image(service):
-    try:
-        digest = service.push()
-    except:
-        log.error(
-            "Failed to push image for service '{s.name}'. Please use an "
-            "image tag that can be pushed to a Docker "
-            "registry.".format(s=service))
-        raise
-
-    if not digest:
-        raise ValueError("Failed to get digest for %s" % service.name)
-
-    repo, _, _ = parse_repository_tag(service.options['image'])
-    identifier = '{repo}@{digest}'.format(repo=repo, digest=digest)
-
-    # only do this if RepoDigests isn't already populated
-    image = service.image()
-    if not image['RepoDigests']:
-        # Pull by digest so that image['RepoDigests'] is populated for next time
-        # and we don't have to pull/push again
-        service.client.pull(identifier)
-        log.info("Stored digest for {}".format(service.image_name))
-
-    return identifier
+    return image['Id']
 
 
 def to_bundle(config, image_digests):
@@ -155,19 +87,15 @@ def to_bundle(config, image_digests):
 
     return {
         'Version': VERSION,
-        'Services': {
-            name: convert_service_to_bundle(
-                name,
-                service_dict,
-                image_digests[name],
-            )
+        'Services': [
+            convert_service_to_bundle(name, service_dict, image_digests[name])
             for name, service_dict in config['services'].items()
-        },
+        ],
     }
 
 
-def convert_service_to_bundle(name, service_dict, image_digest):
-    container_config = {'Image': image_digest}
+def convert_service_to_bundle(name, service_dict, image_id):
+    container_config = {'Image': image_id}
 
     for key, value in service_dict.items():
         if key in IGNORED_KEYS:
@@ -198,6 +126,7 @@ def convert_service_to_bundle(name, service_dict, image_digest):
     if ports:
         container_config['Ports'] = ports
 
+    container_config['Name'] = name
     return container_config
 
 
