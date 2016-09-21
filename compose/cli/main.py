@@ -227,7 +227,7 @@ class TopLevelCommand(object):
         automatically when bundling, pass `--push-images`. Only services with
         a `build` option specified will have their images pushed.
 
-        Usage: bundle [options] [REPOTAG]
+        Usage: bundle [options] REPOTAG
 
         """
         self.project = project_from_options('.', config_options)
